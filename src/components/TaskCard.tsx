@@ -4,7 +4,7 @@ import type { CSSProperties } from 'react';
 import type { Label, Task, TeamMember } from '../lib/types';
 import { Avatar } from './Avatar';
 import { DueDateBadge, LabelPill, PriorityPill } from './Pills';
-import { IconChat } from './Icons';
+import { IconChat, IconTrash } from './Icons';
 
 interface Props {
   task: Task;
@@ -12,10 +12,11 @@ interface Props {
   labels: Label[];
   commentCount?: number;
   onOpen: (taskId: string) => void;
+  onDelete?: (taskId: string) => void;
   isOverlay?: boolean;
 }
 
-export function TaskCard({ task, assignee, labels, commentCount, onOpen, isOverlay }: Props) {
+export function TaskCard({ task, assignee, labels, commentCount, onOpen, onDelete, isOverlay }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
     data: { type: 'task', task },
@@ -59,6 +60,27 @@ export function TaskCard({ task, assignee, labels, commentCount, onOpen, isOverl
       aria-label={`Open task: ${task.title}`}
     >
       <div className="card-priority-bar" aria-hidden />
+
+      {onDelete && !isOverlay ? (
+        <button
+          type="button"
+          data-stop-card
+          className="card-delete"
+          aria-label={`Delete task: ${task.title}`}
+          title="Delete task"
+          // Stop pointer events so dnd-kit doesn't start a drag from this button.
+          onPointerDown={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (confirm(`Delete "${task.title}"? This cannot be undone.`)) {
+              onDelete(task.id);
+            }
+          }}
+        >
+          <IconTrash width={13} height={13} />
+        </button>
+      ) : null}
 
       <div className="card-title">{task.title}</div>
 

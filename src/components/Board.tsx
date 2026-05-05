@@ -30,6 +30,7 @@ interface Props {
   labelFilter: Set<string>;
   onCreate: (status: Status) => void;
   onOpenTask: (taskId: string) => void;
+  onDeleteTask: (taskId: string) => void;
   onError: (msg: string) => void;
 }
 
@@ -46,6 +47,7 @@ export function Board({
   labelFilter,
   onCreate,
   onOpenTask,
+  onDeleteTask,
   onError,
 }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -223,6 +225,7 @@ export function Board({
             commentCounts={commentCounts}
             onCreate={onCreate}
             onOpenTask={onOpenTask}
+            onDeleteTask={onDeleteTask}
             filtersActive={filtersActive}
           />
         ))}

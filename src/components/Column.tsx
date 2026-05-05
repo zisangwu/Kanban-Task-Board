@@ -14,6 +14,7 @@ interface Props {
   commentCounts: Record<string, number>;
   onCreate: (status: Status) => void;
   onOpenTask: (taskId: string) => void;
+  onDeleteTask: (taskId: string) => void;
   filtersActive: boolean;
 }
 
@@ -26,6 +27,7 @@ export function Column({
   commentCounts,
   onCreate,
   onOpenTask,
+  onDeleteTask,
   filtersActive,
 }: Props) {
   const { isOver, setNodeRef } = useDroppable({
@@ -77,6 +79,7 @@ export function Column({
               labels={labelsFor(t.id)}
               commentCount={commentCounts[t.id] ?? 0}
               onOpen={onOpenTask}
+              onDelete={onDeleteTask}
             />
           ))}
           {tasks.length === 0 ? (

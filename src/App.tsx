@@ -15,6 +15,7 @@ import {
   createTask,
   createTeamMember,
   deleteLabel,
+  deleteTask,
   deleteTeamMember,
 } from './lib/db';
 import type { Priority, Status, Task } from './lib/types';
@@ -199,6 +200,20 @@ function BoardScreen({
     setOpenTaskId(null);
     pushToast('Task deleted', 'success');
   }
+  // Card-level delete (the trash button on the card itself).  Optimistically
+  // removes from local state and rolls back on failure.
+  async function handleDeleteTaskFromCard(id: string) {
+    const prev = data.tasks;
+    data.setTasks((p) => p.filter((t) => t.id !== id));
+    if (openTaskId === id) setOpenTaskId(null);
+    try {
+      await deleteTask(id);
+      pushToast('Task deleted', 'success');
+    } catch (err) {
+      data.setTasks(prev);
+      onError(err instanceof Error ? err.message : 'Failed to delete task');
+    }
+  }
   function handleLabelsChanged(taskId: string, labelIds: string[]) {
     data.setTaskLabels((prev) => [
       ...prev.filter((tl) => tl.task_id !== taskId),
@@ -257,6 +272,7 @@ function BoardScreen({
             labelFilter={labelFilter}
             onCreate={onCreate}
             onOpenTask={setOpenTaskId}
+            onDeleteTask={handleDeleteTaskFromCard}
             onError={onError}
           />
         )}
@@ -331,26 +347,7 @@ function EmptyBoard({ onCreate }: { onCreate: () => void }) {
         onClick={onCreate}
         aria-label="Create your first task"
         title="Create your first task"
-        style={{
-          width: 64,
-          height: 64,
-          borderRadius: 16,
-          background: 'var(--accent-soft)',
-          color: 'var(--accent)',
-          display: 'grid',
-          placeItems: 'center',
-          fontSize: 28,
-          fontWeight: 700,
-          border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)',
-          cursor: 'pointer',
-          transition: 'transform 120ms cubic-bezier(0.2,0.8,0.2,1), background 120ms',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'scale(1.05)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'scale(1)';
-        }}
+        className="empty-orb"
       >
         +
       </button>
@@ -414,9 +411,24 @@ function FatalErrorScreen({ message }: { message: string }) {
   );
 }
 
+/**
+ * Three softly-floating tinted blobs that sit behind everything.
+ * Pure decoration — pointer-events disabled, marked aria-hidden.
+ */
+function BackgroundBlobs() {
+  return (
+    <div className="bg-blobs" aria-hidden>
+      <div className="bg-blob bg-blob--violet" />
+      <div className="bg-blob bg-blob--pink" />
+      <div className="bg-blob bg-blob--sky" />
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <ToastProvider>
+      <BackgroundBlobs />
       <AppShell />
     </ToastProvider>
   );
