@@ -12,10 +12,8 @@ indicators, team-member assignees, search, filtering, and a board summary.
 
 ## Live demo
 
-> _Replace with your deploy URL after running through the deploy steps below._
-
-- **Live app:** `https://your-app.vercel.app`
-- **Repo:** `https://github.com/your-username/task-board`
+- **Live app:** <https://kanban-task-board-lyart.vercel.app/>
+- **Repo:** <https://github.com/zisangwu/Kanban-Task-Board>
 
 ---
 
