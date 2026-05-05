@@ -1,10 +1,13 @@
 # Kanban Task Board
 
 A polished, full-stack Kanban task board built with **React + TypeScript + Vite**
-on top of **Supabase** (anonymous auth + Postgres with Row-Level Security).
-Tasks can be dragged across the four columns — *To Do*, *In Progress*, *In Review*,
-*Done* — and the board supports comments, an activity log, labels, due-date
-indicators, team-member assignees, search, filtering, and a board summary.
+on top of **Supabase** (Auth + Postgres with Row-Level Security).
+Visitors can either **sign up** for a permanent account or jump straight in as
+a **guest**; either way, every row is automatically isolated to the current
+user via RLS. Tasks can be dragged across the four columns — *To Do*,
+*In Progress*, *In Review*, *Done* — and the board supports comments, an
+activity log, labels, due-date indicators, team-member assignees, search,
+filtering, and a board summary.
 
 > Submitted for the Next Play Games — Software Development internship assessment.
 
@@ -23,10 +26,11 @@ indicators, team-member assignees, search, filtering, and a board summary.
 | ---------------- | ----------------------------------------------- |
 | UI framework     | React 19 + TypeScript                           |
 | Build tool       | Vite 8                                          |
+| Routing          | `react-router-dom` (Browser router)             |
 | Drag & drop      | `@dnd-kit/core` + `@dnd-kit/sortable`           |
 | Date handling    | `date-fns`                                      |
 | Database & auth  | Supabase (Postgres, Auth, Realtime)             |
-| Styling          | Hand-written CSS with a token system + dark mode |
+| Styling          | Hand-written CSS, hybrid claymorphism tokens    |
 
 There is **no custom backend service** — the React frontend talks directly to
 Supabase using the public anon key with RLS policies enforcing per-user access.
@@ -41,6 +45,9 @@ Supabase using the public anon key with RLS policies enforcing per-user access.
 - [x] Create tasks with title, description, priority, due date
 - [x] Persistence in Supabase with **RLS** so users only see their own tasks
 - [x] **Anonymous guest accounts** via Supabase Auth — no email/password
+- [x] **Email + password sign-up / log-in** with username as display name —
+      keeps tasks across devices
+- [x] Public **landing**, **log in**, and **sign up** pages; gated `/board`
 - [x] Loading skeletons, empty states, and surfaced error toasts
 
 ### Advanced (built to differentiate)
@@ -75,8 +82,11 @@ Supabase using the public anon key with RLS policies enforcing per-user access.
 ### 1. Create a Supabase project
 
 1. Go to <https://supabase.com> and create a new free-tier project.
-2. In **Authentication → Providers → Anonymous Sign-Ins**, enable
-   **"Allow anonymous sign-ins"**.
+2. **Auth providers** (Authentication → Providers):
+   - Enable **Email** (it's on by default). For frictionless signup during
+     evaluation, also turn off **"Confirm email"** under Email provider
+     settings — accounts work immediately, no inbox round-trip.
+   - Enable **"Allow anonymous sign-ins"** so the *Try as guest* button works.
 3. Open the **SQL editor**, paste the contents of
    [`supabase/schema.sql`](./supabase/schema.sql), and run it. This creates
    all the tables, indexes, the `updated_at` trigger, RLS policies, and adds
@@ -106,18 +116,27 @@ npm install
 npm run dev
 ```
 
-Open <http://localhost:5173>. On first launch, the app calls
-`supabase.auth.signInAnonymously()` and the resulting guest UUID is shown in
-the header. Every row you create is automatically scoped to that UUID via RLS.
+Open <http://localhost:5173>. You'll land on the **public landing page**
+with three CTAs:
+
+- **Try as guest** — calls `supabase.auth.signInAnonymously()` and routes
+  to `/board`. Tasks are scoped to a guest UUID stored in `localStorage`.
+- **Create account** — `/signup`: pick a username, enter email + password.
+  Saves your tasks across devices.
+- **Log in** — `/login`: email + password.
+
+Every row you create is automatically scoped to your `auth.uid()` via RLS,
+whether you're a guest or an authenticated user.
 
 ### 4. Test multi-user isolation
 
-- Open the app in a regular window — create tasks A, B, C.
-- Open it in an **incognito window** — you'll get a brand-new guest user
-  and an empty board. Create tasks X, Y, Z. The two boards never see each
-  other's data, enforced both at the API level (the queries filter by
-  `user_id`) and at the database level (RLS policies). Try clearing
-  `localStorage` to start a fresh guest session.
+- **As two guests:** open the app in a regular window — create tasks A, B, C.
+  Open it in an **incognito window** — brand-new guest user, empty board.
+  Create tasks X, Y, Z. The two boards never see each other's data, enforced
+  at the API level *and* at the database level (RLS policies).
+- **As two real users:** sign up two accounts (e.g. `alice@example.com` and
+  `bob@example.com`) in different browsers. Same isolation, but tasks now
+  follow the user across devices via the email login.
 
 ### 5. Build & deploy
 
@@ -134,7 +153,11 @@ The output of `npm run build` is a static site you can deploy to any of:
 - **Cloudflare Pages** — build command `npm run build`, output `dist/`
 
 In Supabase, add your deployed origin to **Authentication → URL Configuration
-→ Site URL** so anonymous tokens are returned with the right CORS origin.
+→ Site URL** so auth tokens are returned with the right CORS origin.
+
+The included [`vercel.json`](./vercel.json) ships an SPA rewrite rule
+(`/(.*)` → `/`) so direct URLs to `/login`, `/signup`, and `/board` resolve
+to `index.html` and let the React Router handle them.
 
 ---
 
@@ -170,15 +193,22 @@ task-board/
 ├── public/
 │   └── favicon.svg
 ├── src/
-│   ├── App.tsx                 # top-level state, modals, panels
-│   ├── main.tsx                # React entry
+│   ├── App.tsx                 # router, RequireAuth / PublicOnly guards
+│   ├── main.tsx                # React entry, BrowserRouter + AuthProvider
 │   ├── index.css               # design tokens + all component styles
+│   ├── pages/
+│   │   ├── Landing.tsx         # public hero, "Try as guest / Sign up / Log in"
+│   │   ├── Login.tsx           # email + password
+│   │   ├── Signup.tsx          # username + email + password
+│   │   └── BoardPage.tsx       # the gated /board screen (tasks, modals, panel)
 │   ├── lib/
 │   │   ├── supabase.ts         # supabase-js client
 │   │   ├── types.ts            # domain types + status/priority labels
 │   │   └── db.ts               # typed CRUD helpers used by the UI
 │   ├── hooks/
-│   │   ├── useAuth.ts          # anonymous bootstrap
+│   │   ├── AuthProvider.tsx    # provider: signUp / signIn / signOut / signInAsGuest
+│   │   ├── useAuth.ts          # consumer hook
+│   │   ├── authContext.ts      # context type
 │   │   ├── useBoardData.ts     # tasks/members/labels + realtime
 │   │   ├── ToastProvider.tsx   # toast surface
 │   │   ├── useToast.ts         # consumer hook
@@ -245,12 +275,13 @@ per mutation.
 - **Bulk position updates** when many tasks need re-balancing (currently relies
   on the fractional-position trick to avoid this; it works but a periodic
   rebalance job would be ideal).
-- **Email/password sign-in or "claim guest account"** so a user can keep their
-  data across devices. The current `anon` token persists in `localStorage`
-  per browser only.
-- **Code-splitting** the detail panel + modal bundles. Today everything ships
-  in a single ~501 KB / 143 KB gzip bundle. Lazy-loading the panel would shave
-  the initial download by ~30%.
+- **"Claim guest account"** flow — let a guest add an email + password to
+  their existing anonymous user via `supabase.auth.linkIdentity()`,
+  preserving every task. The current logout-as-guest path hard-deletes data.
+- **OAuth providers** (Google, GitHub) on the sign-in page.
+- **Code-splitting** the board route. Today everything ships in a single
+  ~553 KB / 160 KB gzip bundle. Lazy-loading the board behind the auth
+  routes would cut the landing-page download by ~50%.
 - **Generated DB types** via `supabase gen types typescript`. I'm using
   hand-written types today (cleaner for a 6-table schema) but generation
   would scale better.

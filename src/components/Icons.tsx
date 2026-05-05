@@ -98,6 +98,14 @@ export function IconFilter(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+export function IconLogout(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M9.5 2.5h-6a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h6" />
+      <path d="M11 5.5L13.5 8 11 10.5M6.5 8h7" />
+    </svg>
+  );
+}
 export function IconDots(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...base} {...props}>
