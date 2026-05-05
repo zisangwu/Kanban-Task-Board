@@ -13,10 +13,12 @@ export default function Signup() {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
 
     const u = username.trim();
     if (u.length < 2) {
@@ -41,13 +43,14 @@ export default function Signup() {
     }
 
     // Try logging in straight away. If email confirmation is required in
-    // Supabase, this will fail gracefully — fall back to a friendly notice.
+    // Supabase, this will fail gracefully — fall back to a friendly success
+    // notice asking the user to confirm via email.
     const logged = await signInWithPassword({ email, password });
     setBusy(false);
     if (logged.ok) {
       navigate('/board', { replace: true });
     } else {
-      setError(
+      setSuccess(
         'Account created. Confirm your email to finish — then come back and log in.',
       );
     }
@@ -105,6 +108,11 @@ export default function Signup() {
           {error && (
             <p className="auth-error" role="alert">
               {error}
+            </p>
+          )}
+          {success && (
+            <p className="auth-success" role="status">
+              {success}
             </p>
           )}
 

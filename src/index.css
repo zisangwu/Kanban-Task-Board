@@ -1372,6 +1372,17 @@ a:hover { text-decoration: underline; }
   border: 1px solid var(--priority-high-bd);
 }
 
+.auth-success {
+  margin: 0;
+  padding: 10px 14px;
+  background: #dcfce7;
+  color: #065f46;
+  border-radius: var(--r-md);
+  font-size: 15px;
+  font-weight: 600;
+  border: 1px solid #a7f3d0;
+}
+
 .auth-divider {
   display: flex;
   align-items: center;
